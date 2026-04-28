@@ -4,7 +4,7 @@ import { useLanguage } from "../contexts/LanguageContext";
 import {
   Megaphone, ThumbsUp, MessageCircle, Flame, Heart, AlertTriangle,
   Plus, X, ChevronDown, ChevronUp, Send, MapPin, Clock,
-  TrendingUp, Filter, Search
+  TrendingUp, Filter, Search, Mail, Copy, CheckCircle2, PhoneCall
 } from "lucide-react";
 
 const CATEGORIES = [
@@ -60,6 +60,67 @@ interface IssueCardProps {
   onComment: (id: number, text: string, author: string) => void;
   localUpvoted: Set<number>;
   localReacted: Map<number, string>;
+}
+
+// Escalate to MLA button (IMPROVE)
+function EscalateMLA({ constituency, issueTitle }: { constituency: string; issueTitle: string }) {
+  const [show, setShow] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const mlaName = `MLA of ${constituency}`;
+  const emailBody = `Dear ${mlaName},\n\nI am a constituent from ${constituency} raising this urgent issue:\n\n"${issueTitle}"\n\nI request you to take immediate action on this matter.\n\nThis issue has been raised by citizens on AP Civic Tracker (ap-civic-tracker.app).\n\nYours faithfully,\nA Concerned Citizen of ${constituency}`;
+  const mailtoLink = `mailto:?subject=Urgent: ${encodeURIComponent(issueTitle)}&body=${encodeURIComponent(emailBody)}`;
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(emailBody).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setShow(s => !s)}
+        className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1.5 rounded-lg transition-colors"
+      >
+        <PhoneCall className="w-3.5 h-3.5" /> Escalate to MLA
+      </button>
+
+      {show && (
+        <div className="absolute bottom-full left-0 mb-2 w-80 bg-white border border-amber-200 rounded-xl shadow-2xl z-50 overflow-hidden">
+          <div className="bg-amber-50 px-4 py-3 border-b border-amber-100">
+            <div className="flex items-center justify-between">
+              <div className="text-xs font-bold text-amber-800 flex items-center gap-1.5">
+                <PhoneCall className="w-3.5 h-3.5" /> Escalate to {mlaName}
+              </div>
+              <button onClick={() => setShow(false)} className="text-slate-400 hover:text-slate-600"><X className="w-4 h-4" /></button>
+            </div>
+          </div>
+          <div className="p-4">
+            <p className="text-xs text-slate-500 mb-3">Pre-filled email template ready to send:</p>
+            <div className="bg-slate-50 rounded-lg p-3 text-xs text-slate-600 font-mono leading-relaxed whitespace-pre-wrap max-h-32 overflow-y-auto">
+              {emailBody}
+            </div>
+            <div className="flex gap-2 mt-3">
+              <a
+                href={mailtoLink}
+                className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white py-2 rounded-lg transition-colors"
+                onClick={() => setShow(false)}
+              >
+                <Mail className="w-3.5 h-3.5" /> Open Email
+              </a>
+              <button
+                onClick={copyToClipboard}
+                className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold border border-slate-200 hover:bg-slate-50 text-slate-700 py-2 rounded-lg transition-colors"
+              >
+                {copied ? <><CheckCircle2 className="w-3.5 h-3.5 text-green-500" /> Copied!</> : <><Copy className="w-3.5 h-3.5" /> Copy Text</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function IssueCard({ issue, onUpvote, onReact, onComment, localUpvoted, localReacted }: IssueCardProps) {
@@ -160,14 +221,18 @@ function IssueCard({ issue, onUpvote, onReact, onComment, localUpvoted, localRea
             </button>
           ))}
         </div>
-        <button
-          onClick={() => setShowComments(s => !s)}
-          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 px-2 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-        >
-          <MessageCircle className="w-3.5 h-3.5" />
-          <span>{issue.comments?.length || 0} comments</span>
-          {showComments ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Escalate to MLA button (IMPROVE) */}
+          <EscalateMLA constituency={issue.constituency} issueTitle={issue.title} />
+          <button
+            onClick={() => setShowComments(s => !s)}
+            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 px-2 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            <span>{issue.comments?.length || 0} comments</span>
+            {showComments ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
+        </div>
       </div>
 
       {/* Comments Section */}

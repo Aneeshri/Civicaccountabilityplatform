@@ -3,8 +3,8 @@ import { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useLanguage } from "../contexts/LanguageContext";
-import { Menu, Bell, Search } from "lucide-react";
-import { useNavigate } from "react-router";
+import { Menu, Bell, Search, Database, AlertTriangle, ExternalLink } from "lucide-react";
+import { useNavigate, Link } from "react-router";
 
 export function Layout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -84,8 +84,34 @@ export function Layout() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto flex flex-col">
+          <div className="flex-1">
+            <Outlet />
+          </div>
+
+          {/* Site-wide Footer */}
+          <footer className="bg-[#1E3A5F] text-white mt-auto flex-shrink-0">
+            <div className="px-6 py-5">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                  <div className="font-bold text-sm text-amber-400">AP Civic Tracker — Open Data Initiative</div>
+                  <p className="text-slate-300 text-xs mt-1 max-w-md">
+                    Built to increase transparency and accountability in Andhra Pradesh. 
+                    This is an independent civic platform. Not affiliated with AP Government.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-4 text-xs">
+                  <Link to="/data-sources" className="text-slate-300 hover:text-amber-400 flex items-center gap-1 transition-colors">
+                    <Database className="w-3.5 h-3.5" /> Data Sources
+                  </Link>
+                  <Link to="/reports" className="text-slate-300 hover:text-amber-400 flex items-center gap-1 transition-colors">
+                    <AlertTriangle className="w-3.5 h-3.5" /> Report an Error
+                  </Link>
+                  <span className="text-slate-500">v2.0 · April 2026</span>
+                </div>
+              </div>
+            </div>
+          </footer>
         </main>
       </div>
     </div>

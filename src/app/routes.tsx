@@ -13,6 +13,9 @@ import { Compare } from "./pages/Compare";
 import { SpeakUp } from "./pages/SpeakUp";
 import { AIChat } from "./pages/AIChat";
 import { TaxInArea } from "./pages/TaxInArea";
+import { DataSources } from "./pages/DataSources";
+import { Attendance } from "./pages/Attendance";
+import { Assets } from "./pages/Assets";
 
 function NotFound() {
   return (
@@ -42,6 +45,9 @@ export const router = createBrowserRouter([
       { path: "speak-up", Component: SpeakUp },
       { path: "ai-chat", Component: AIChat },
       { path: "tax-area", Component: TaxInArea },
+      { path: "data-sources", Component: DataSources },
+      { path: "attendance", Component: Attendance },
+      { path: "assets", Component: Assets },
       { path: "*", Component: NotFound },
     ],
   },

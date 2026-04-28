@@ -131,6 +131,15 @@ export function News() {
         </button>
       </div>
 
+      {/* ⚠️ AI-Generated Disclaimer Banner (FIX 4) */}
+      <div className="flex items-start gap-3 px-4 py-3 bg-amber-50 border border-amber-300 rounded-xl">
+        <span className="text-amber-500 text-lg flex-shrink-0 mt-0.5">⚠️</span>
+        <div>
+          <span className="font-semibold text-amber-800 text-sm">Simulated News Feed</span>
+          <span className="text-amber-700 text-sm ml-1">— This data is AI-generated for demonstration purposes. Real news integration coming soon.</span>
+        </div>
+      </div>
+
       {/* Sentiment Summary */}
       <div className="grid grid-cols-3 gap-4">
         {[

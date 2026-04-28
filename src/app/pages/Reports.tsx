@@ -1,16 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { api } from "../lib/api";
 import { useLanguage } from "../contexts/LanguageContext";
 import {
   FileText, Send, CheckCircle2, MapPin, User,
-  MessageSquare, AlertTriangle, Clock, Loader2
+  MessageSquare, AlertTriangle, Clock, Loader2, Search, X
 } from "lucide-react";
-
-const DISTRICTS = [
-  "Srikakulam", "Vizianagaram", "Visakhapatnam", "East Godavari",
-  "West Godavari", "Krishna", "Guntur", "Prakasam", "SPSR Nellore",
-  "Kurnool", "YSR Kadapa", "Anantapur", "Chittoor"
-];
 
 const CATEGORIES = [
   "Road & Infrastructure",
@@ -40,6 +34,10 @@ export function Reports() {
   const [loadingReports, setLoadingReports] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [allConstituencies, setAllConstituencies] = useState<Array<{name: string; district: string}>>([]);
+  const [constSearch, setConstSearch] = useState("");
+  const [showConstPicker, setShowConstPicker] = useState(false);
+  const constPickerRef = useRef<HTMLDivElement>(null);
 
   const [form, setForm] = useState({
     reporter_name: "",
@@ -49,12 +47,37 @@ export function Reports() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Load all 175 constituencies
+  useEffect(() => {
+    api.getConstituencies()
+      .then(res => setAllConstituencies(
+        res.data.sort((a, b) => a.name.localeCompare(b.name))
+      ))
+      .catch(() => {});
+  }, []);
+
+  // Close picker when clicking outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (constPickerRef.current && !constPickerRef.current.contains(e.target as Node)) {
+        setShowConstPicker(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   useEffect(() => {
     api.getReports()
       .then(res => setReports(res.data as Report[]))
       .catch(() => {})
       .finally(() => setLoadingReports(false));
   }, [submitted]);
+
+  const filteredConsts = allConstituencies.filter(c =>
+    c.name.toLowerCase().includes(constSearch.toLowerCase()) ||
+    c.district.toLowerCase().includes(constSearch.toLowerCase())
+  );
 
   const validate = () => {
     const errs: Record<string, string> = {};
@@ -82,6 +105,7 @@ export function Reports() {
       });
       setSubmitted(true);
       setForm({ reporter_name: "", constituency: "", category: "", description: "" });
+      setConstSearch("");
       setTimeout(() => setSubmitted(false), 5000);
     } catch (err: any) {
       setErrors({ submit: err.message || "Failed to submit report" });
@@ -162,28 +186,73 @@ export function Reports() {
               </div>
             </div>
 
-            {/* Constituency */}
-            <div>
+            {/* Constituency — Searchable Picker (FIX 1) */}
+            <div ref={constPickerRef}>
               <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5">
                 Constituency *
               </label>
               <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <select
-                  value={form.constituency}
-                  onChange={e => setForm(f => ({ ...f, constituency: e.target.value }))}
-                  className={`w-full pl-9 pr-4 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white ${
-                    errors.constituency ? "border-red-300" : "border-slate-200"
-                  }`}
+                <button
+                  type="button"
+                  onClick={() => { setShowConstPicker(p => !p); setConstSearch(""); }}
+                  className={`w-full flex items-center gap-2 px-3 py-2.5 text-sm border rounded-lg text-left bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 ${errors.constituency ? "border-red-300" : "border-slate-200"}`}
                 >
-                  <option value="">Select district first, then constituency</option>
-                  {DISTRICTS.map(d => (
-                    <optgroup key={d} label={d}>
-                      {/* For simplicity, use district as constituency selection indicator */}
-                      <option value={`${d} Central`}>{d} Central</option>
-                    </optgroup>
-                  ))}
-                </select>
+                  <MapPin className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                  <span className={form.constituency ? "text-slate-800 flex-1" : "text-slate-400 flex-1"}>
+                    {form.constituency || "Search and select your constituency…"}
+                  </span>
+                  {form.constituency && (
+                    <button type="button" onClick={e => { e.stopPropagation(); setForm(f => ({ ...f, constituency: "" })); }}
+                      className="text-slate-400 hover:text-red-500 p-0.5">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </button>
+
+                {showConstPicker && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 overflow-hidden">
+                    <div className="p-2 border-b border-slate-100 sticky top-0 bg-white">
+                      <div className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-2">
+                        <Search className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                        <input
+                          autoFocus
+                          type="text"
+                          value={constSearch}
+                          onChange={e => setConstSearch(e.target.value)}
+                          placeholder="Type constituency or district name..."
+                          className="bg-transparent flex-1 text-sm text-slate-700 outline-none"
+                        />
+                        {constSearch && (
+                          <button onClick={() => setConstSearch("")} className="text-slate-400">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1 px-1">{filteredConsts.length} of 175 constituencies</p>
+                    </div>
+                    <div className="max-h-56 overflow-y-auto">
+                      {filteredConsts.length === 0 ? (
+                        <div className="px-3 py-6 text-center text-slate-400 text-sm">No constituencies found</div>
+                      ) : (
+                        filteredConsts.map(c => (
+                          <button
+                            key={c.name}
+                            type="button"
+                            onClick={() => {
+                              setForm(f => ({ ...f, constituency: c.name }));
+                              setShowConstPicker(false);
+                              setConstSearch("");
+                            }}
+                            className={`w-full flex items-center justify-between px-3 py-2.5 text-sm hover:bg-amber-50 transition-colors text-left ${form.constituency === c.name ? "bg-amber-50 text-amber-700 font-semibold" : "text-slate-700"}`}
+                          >
+                            <span>{c.name}</span>
+                            <span className="text-xs text-slate-400 ml-2 flex-shrink-0">{c.district}</span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
               {errors.constituency && <p className="text-xs text-red-500 mt-1">{errors.constituency}</p>}
             </div>
@@ -196,9 +265,7 @@ export function Reports() {
               <select
                 value={form.category}
                 onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white ${
-                  errors.category ? "border-red-300" : "border-slate-200"
-                }`}
+                className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white ${errors.category ? "border-red-300" : "border-slate-200"}`}
               >
                 <option value="">Select category</option>
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -216,9 +283,7 @@ export function Reports() {
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="Describe the issue in detail (minimum 20 characters)..."
                 rows={4}
-                className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none ${
-                  errors.description ? "border-red-300" : "border-slate-200"
-                }`}
+                className={`w-full px-3 py-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none ${errors.description ? "border-red-300" : "border-slate-200"}`}
               />
               <div className="flex justify-between items-center mt-1">
                 {errors.description

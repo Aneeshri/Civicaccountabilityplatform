@@ -9,7 +9,7 @@ import {
 import {
   Users, Trophy, CheckCircle2, Clock, AlertCircle,
   TrendingUp, MapPin, Newspaper, ArrowRight, Building2,
-  GitCompare, Megaphone, Flame, Crown
+  GitCompare, Megaphone, Flame, Crown, Database, RefreshCw, CheckSquare
 } from "lucide-react";
 
 const PARTY_COLORS: Record<string, string> = {
@@ -96,6 +96,27 @@ export function Dashboard() {
 
   return (
     <div className="p-4 lg:p-6 space-y-6">
+      {/* Quick Facts Ticker (IMPROVE) */}
+      <div className="bg-amber-500 text-white rounded-xl px-4 py-2 overflow-hidden">
+        <div className="flex items-center gap-2 text-sm font-medium animate-none">
+          <span className="flex-shrink-0 text-amber-100 text-xs font-bold uppercase tracking-wider">LIVE</span>
+          <span className="flex-shrink-0">·</span>
+          <div className="flex items-center gap-4 overflow-x-auto scrollbar-hide whitespace-nowrap text-xs font-semibold">
+            <span>175 MLAs tracked</span>
+            <span className="text-amber-200">•</span>
+            <span>13 Districts</span>
+            <span className="text-amber-200">•</span>
+            <span>4 Parties</span>
+            <span className="text-amber-200">•</span>
+            <span>{stats.project_stats.inProgress + stats.project_stats.completed} Active &amp; Completed Projects</span>
+            <span className="text-amber-200">•</span>
+            <span>Last updated: April 2026</span>
+            <span className="text-amber-200">•</span>
+            <Link to="/data-sources" className="underline hover:text-white text-amber-100">View Data Sources</Link>
+          </div>
+        </div>
+      </div>
+
       {/* Page Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -243,6 +264,9 @@ export function Dashboard() {
             </div>
           ))}
         </div>
+        <p className="text-xs text-amber-600 mt-3 flex items-center gap-1">
+          ⚠️ News articles are AI-generated for demonstration purposes
+        </p>
       </div>
 
       {/* Quick Links */}
@@ -265,10 +289,9 @@ export function Dashboard() {
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 rounded-2xl p-5 text-white">
         <div className="flex items-center gap-2 mb-4">
           <Crown className="w-5 h-5 text-amber-400" />
-          <h2 className="font-bold text-base text-white">🏆 AP Leaderboard & Streaks</h2>
+          <h2 className="font-bold text-base text-white">🏆 AP Leaderboard &amp; Streaks</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* Streak 1 */}
           <div className="bg-gradient-to-br from-orange-500 to-red-500 rounded-xl p-4 flex items-start gap-3">
             <span className="text-3xl">🔥</span>
             <div>
@@ -276,7 +299,6 @@ export function Dashboard() {
               <div className="text-orange-100 text-xs">Top 10 MLAs completed 12+ projects this month</div>
             </div>
           </div>
-          {/* Streak 2 */}
           <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-4 flex items-start gap-3">
             <span className="text-3xl">📈</span>
             <div>
@@ -284,7 +306,6 @@ export function Dashboard() {
               <div className="text-green-100 text-xs">23 constituencies improved their sentiment score</div>
             </div>
           </div>
-          {/* Streak 3 */}
           <div className="bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl p-4 flex items-start gap-3">
             <span className="text-3xl">⚡</span>
             <div>
@@ -327,6 +348,55 @@ export function Dashboard() {
           <Link to="/compare" className="flex items-center gap-1.5 text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-lg font-medium transition-colors">
             <GitCompare className="w-3.5 h-3.5" /> Compare Areas
           </Link>
+        </div>
+      </div>
+
+      {/* Data Health Widget (IMPROVE) */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+            <Database className="w-4 h-4 text-blue-500" /> Data Health
+          </h2>
+          <Link to="/data-sources" className="text-xs text-amber-600 hover:underline flex items-center gap-1">
+            View all sources <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-green-50 border border-green-200 flex items-center justify-center flex-shrink-0">
+              <CheckSquare className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <div className="text-lg font-black text-green-700">350/350</div>
+              <div className="text-xs text-slate-500">Verified data points</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center flex-shrink-0">
+              <RefreshCw className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <div className="text-lg font-black text-amber-700">~4,200</div>
+              <div className="text-xs text-slate-500">Modelled data points</div>
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-slate-500 mb-1.5">Data verified vs modelled</div>
+            <div className="h-3 bg-slate-100 rounded-full overflow-hidden flex">
+              <div className="h-full bg-green-500 rounded-l-full" style={{ width: "7.7%" }} />
+              <div className="h-full bg-amber-400" style={{ width: "92.3%" }} />
+            </div>
+            <div className="flex justify-between text-xs mt-1">
+              <span className="text-green-600 font-medium">7.7% Verified</span>
+              <span className="text-amber-600 font-medium">92.3% Modelled</span>
+            </div>
+          </div>
+        </div>
+        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+          <span className="text-xs text-slate-400">Last data refresh: April 2026</span>
+          <button className="text-xs font-semibold text-amber-600 hover:text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 transition-colors">
+            Request Data Update
+          </button>
         </div>
       </div>
     </div>

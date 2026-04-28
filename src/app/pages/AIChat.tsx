@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { api } from "../lib/api";
+import { api, MLAWithMetrics } from "../lib/api";
 import { projectId, publicAnonKey } from "/utils/supabase/info";
 import {
   Bot, Send, MapPin, Sparkles, ChevronDown,
-  User, Loader2, RefreshCw, Lightbulb, X, Search, AlertCircle
+  User, Loader2, RefreshCw, Lightbulb, X, Search, AlertCircle,
+  TrendingUp, CheckCircle2, BarChart2, WifiOff
 } from "lucide-react";
 
 interface Message {
@@ -12,6 +13,15 @@ interface Message {
   content: string;
   timestamp: Date;
   isError?: boolean;
+  isFallback?: boolean;
+  fallbackData?: {
+    mlaName: string;
+    constituency: string;
+    score: number;
+    completed: number;
+    budgetUtil: number;
+    party: string;
+  };
 }
 
 const SUGGESTED_QUESTIONS = [
@@ -40,6 +50,7 @@ export function AIChat() {
   const [showPicker, setShowPicker] = useState(false);
   const [pickerSearch, setPickerSearch] = useState("");
   const [allConstituencies, setAllConstituencies] = useState<string[]>([]);
+  const [mlaCache, setMlaCache] = useState<MLAWithMetrics | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -56,6 +67,14 @@ export function AIChat() {
       .then(res => setAllConstituencies(res.data.map(c => c.name).sort()))
       .catch(() => {});
   }, []);
+
+  // Pre-fetch MLA data when constituency changes (for fallback card)
+  useEffect(() => {
+    if (!constituency) { setMlaCache(null); return; }
+    api.getMlaByConstituency(constituency)
+      .then(mla => setMlaCache(mla))
+      .catch(() => setMlaCache(null));
+  }, [constituency]);
 
   const filteredConstituencies = allConstituencies.filter(c =>
     c.toLowerCase().includes(pickerSearch.toLowerCase())
@@ -74,9 +93,7 @@ export function AIChat() {
 
     // Clear input immediately
     setInput("");
-    if (inputRef.current) {
-      inputRef.current.style.height = "auto";
-    }
+    if (inputRef.current) inputRef.current.style.height = "auto";
 
     // Add user bubble
     addMessage({ role: "user", content: text });
@@ -115,35 +132,35 @@ export function AIChat() {
 
       if (!res.ok) {
         const errText = await res.text().catch(() => `HTTP ${res.status}`);
-        throw new Error(`Server error (${res.status}): ${errText}`);
+        throw new Error(`server_error:${res.status}`);
       }
 
       const data = await res.json();
 
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      if (!data.reply) {
-        throw new Error("Empty response from AI — please try again.");
-      }
+      if (data.error) throw new Error("server_error:response");
+      if (!data.reply) throw new Error("server_error:empty");
 
       addMessage({ role: "assistant", content: data.reply });
     } catch (err: any) {
       clearTimeout(timeoutId);
-      if (err.name === "AbortError") {
-        addMessage({
-          role: "assistant",
-          content: "⏱️ The request timed out (30s). The AI server might be busy — please try again.",
-          isError: true,
-        });
-      } else {
-        addMessage({
-          role: "assistant",
-          content: `❌ ${err.message || "Something went wrong. Please try again."}`,
-          isError: true,
-        });
-      }
+      const isTimeout = err.name === "AbortError";
+      // Show graceful fallback card instead of raw error (FIX 2)
+      addMessage({
+        role: "assistant",
+        content: isTimeout
+          ? "The AI took too long to respond (30s timeout)."
+          : "The AI encountered a temporary issue.",
+        isError: true,
+        isFallback: true,
+        fallbackData: mlaCache ? {
+          mlaName: mlaCache.name,
+          constituency: mlaCache.constituency,
+          score: mlaCache.score,
+          completed: mlaCache.completed,
+          budgetUtil: mlaCache.budgetUtil,
+          party: mlaCache.party,
+        } : undefined,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -163,8 +180,7 @@ export function AIChat() {
     setInput("");
   };
 
-  const renderContent = (content: string, isErr?: boolean) => {
-    if (isErr) return <span className="text-red-600 text-sm">{content}</span>;
+  const renderContent = (content: string) => {
     return content.split("\n").map((line, i) => {
       if (line.startsWith("*") && line.endsWith("*")) {
         return <em key={i} className="text-amber-600 not-italic font-semibold">{line.slice(1, -1)}</em>;
@@ -172,6 +188,76 @@ export function AIChat() {
       if (line === "") return <br key={i} />;
       return <span key={i}>{line}<br /></span>;
     });
+  };
+
+  const renderFallbackCard = (msg: Message) => {
+    const isTimeout = msg.content.includes("30s");
+    return (
+      <div className="max-w-[90%] rounded-2xl rounded-tl-sm border border-slate-200 bg-white shadow-sm overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 border-b border-amber-200">
+          <WifiOff className="w-4 h-4 text-amber-600 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-amber-800">AI Temporarily Unavailable</p>
+            <p className="text-xs text-amber-600">
+              {isTimeout ? "Request timed out — server may be busy." : "A temporary error occurred."}
+            </p>
+          </div>
+        </div>
+
+        {/* Stats fallback */}
+        {msg.fallbackData ? (
+          <div className="p-4">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+              📊 Key Stats — {msg.fallbackData.constituency}
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-slate-50 rounded-lg p-2.5">
+                <div className="text-xs text-slate-500 mb-1">MLA</div>
+                <div className="text-sm font-bold text-slate-800 leading-tight">{msg.fallbackData.mlaName}</div>
+                <div className="text-xs text-slate-500 mt-0.5">{msg.fallbackData.party}</div>
+              </div>
+              <div className="bg-amber-50 rounded-lg p-2.5">
+                <div className="text-xs text-slate-500 mb-1 flex items-center gap-1"><BarChart2 className="w-3 h-3" /> Score</div>
+                <div className={`text-lg font-black ${msg.fallbackData.score >= 140 ? "text-green-600" : msg.fallbackData.score >= 100 ? "text-amber-600" : "text-red-500"}`}>
+                  {msg.fallbackData.score}<span className="text-xs font-normal text-slate-400">/200</span>
+                </div>
+              </div>
+              <div className="bg-green-50 rounded-lg p-2.5">
+                <div className="text-xs text-slate-500 mb-1 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Completed</div>
+                <div className="text-lg font-black text-green-700">{msg.fallbackData.completed}</div>
+                <div className="text-xs text-green-600">projects</div>
+              </div>
+              <div className="bg-blue-50 rounded-lg p-2.5">
+                <div className="text-xs text-slate-500 mb-1 flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Budget Used</div>
+                <div className="text-lg font-black text-blue-700">{msg.fallbackData.budgetUtil}%</div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="px-4 py-3 text-sm text-slate-500">
+            Select a constituency above to see key stats here when AI is unavailable.
+          </div>
+        )}
+
+        {/* Retry */}
+        <div className="px-4 pb-3">
+          <button
+            onClick={() => {
+              const lastUser = [...messages].reverse().find(m => m.role === "user");
+              if (lastUser) sendMessage(lastUser.content);
+            }}
+            className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            <RefreshCw className="w-3 h-3" /> Retry Question
+          </button>
+        </div>
+
+        <div className="px-4 pb-2 text-xs text-slate-400">
+          {msg.timestamp.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -259,38 +345,32 @@ export function AIChat() {
               <div className={`w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center shadow-sm ${
                 msg.role === "user"
                   ? "bg-amber-500 text-white"
-                  : msg.isError
-                  ? "bg-red-100 text-red-500"
+                  : msg.isFallback
+                  ? "bg-amber-100 text-amber-600"
                   : "bg-gradient-to-br from-violet-500 to-indigo-600 text-white"
               }`}>
                 {msg.role === "user"
                   ? <User className="w-4 h-4" />
-                  : msg.isError
-                  ? <AlertCircle className="w-4 h-4" />
+                  : msg.isFallback
+                  ? <WifiOff className="w-4 h-4" />
                   : <Bot className="w-4 h-4" />}
               </div>
 
-              {/* Bubble */}
-              <div className={`max-w-[82%] rounded-2xl px-4 py-3 shadow-sm text-sm leading-relaxed ${
-                msg.role === "user"
-                  ? "bg-amber-500 text-white rounded-tr-sm"
-                  : msg.isError
-                  ? "bg-red-50 border border-red-200 text-red-700 rounded-tl-sm"
-                  : "bg-white text-slate-800 rounded-tl-sm border border-slate-100"
-              }`}>
-                <div className="whitespace-pre-line">{renderContent(msg.content, msg.isError)}</div>
-                {msg.isError && (
-                  <button onClick={() => {
-                    const lastUser = [...messages].reverse().find(m => m.role === "user");
-                    if (lastUser) sendMessage(lastUser.content);
-                  }} className="mt-2 text-xs font-semibold text-red-500 hover:text-red-700 flex items-center gap-1">
-                    <RefreshCw className="w-3 h-3" /> Retry
-                  </button>
-                )}
-                <div className={`text-xs mt-1.5 ${msg.role === "user" ? "text-amber-100" : "text-slate-400"}`}>
-                  {msg.timestamp.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+              {/* Bubble or Fallback Card */}
+              {msg.isFallback ? (
+                renderFallbackCard(msg)
+              ) : (
+                <div className={`max-w-[82%] rounded-2xl px-4 py-3 shadow-sm text-sm leading-relaxed ${
+                  msg.role === "user"
+                    ? "bg-amber-500 text-white rounded-tr-sm"
+                    : "bg-white text-slate-800 rounded-tl-sm border border-slate-100"
+                }`}>
+                  <div className="whitespace-pre-line">{renderContent(msg.content)}</div>
+                  <div className={`text-xs mt-1.5 ${msg.role === "user" ? "text-amber-100" : "text-slate-400"}`}>
+                    {msg.timestamp.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ))}
 
