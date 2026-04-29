@@ -345,7 +345,7 @@ export function MLADetail() {
                   <Tooltip />
                   <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                     {promiseData.map((entry, i) => (
-                      <Cell key={i} fill={entry.fill} />
+                      <Cell key={`mla-promise-cell-${i}-${entry.fill}`} fill={entry.fill} />
                     ))}
                   </Bar>
                 </BarChart>

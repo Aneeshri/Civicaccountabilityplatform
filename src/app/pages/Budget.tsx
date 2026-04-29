@@ -130,7 +130,7 @@ export function Budget() {
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie data={pieData} cx="50%" cy="50%" outerRadius={75} dataKey="value">
-                {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                {pieData.map((entry, i) => <Cell key={`budget-pie-cell-${i}`} fill={COLORS[i % COLORS.length]} />)}
               </Pie>
               <Tooltip formatter={(v) => [`₹${v} Cr`]} />
             </PieChart>

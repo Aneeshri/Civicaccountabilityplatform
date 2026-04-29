@@ -207,7 +207,7 @@ export function Attendance() {
               <YAxis tick={{ fontSize: 11, fill: "#64748B" }} domain={[40, 100]} unit="%" />
               <Tooltip formatter={(v) => [`${v}%`, "Avg. Attendance"]} />
               <Bar dataKey="avg" radius={[4, 4, 0, 0]} label={{ position: "top", fontSize: 11, fill: "#64748B" }}>
-                {partyBarData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                {partyBarData.map((entry) => <Cell key={`attendance-bar-${entry.party}`} fill={entry.fill} />)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>

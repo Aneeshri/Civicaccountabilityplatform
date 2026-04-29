@@ -266,7 +266,7 @@ export function Projects() {
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={75} dataKey="value">
-                {pieData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                {pieData.map((entry, i) => <Cell key={`projects-pie-cell-${i}-${entry.fill}`} fill={entry.fill} />)}
               </Pie>
               <Tooltip />
             </PieChart>

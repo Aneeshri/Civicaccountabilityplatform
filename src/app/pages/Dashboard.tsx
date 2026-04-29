@@ -147,8 +147,8 @@ export function Dashboard() {
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={stats.party_breakdown} cx="50%" cy="50%" outerRadius={80} dataKey="count" nameKey="party" label={({ party, count }) => `${party}: ${count}`} labelLine={false}>
-                {stats.party_breakdown.map((entry, i) => (
-                  <Cell key={i} fill={PARTY_COLORS[entry.party] || "#94A3B8"} />
+                {stats.party_breakdown.map((entry) => (
+                  <Cell key={`party-cell-${entry.party}`} fill={PARTY_COLORS[entry.party] || "#94A3B8"} />
                 ))}
               </Pie>
               <Tooltip formatter={(v, n) => [v, n]} />
@@ -173,7 +173,7 @@ export function Dashboard() {
             <PieChart>
               <Pie data={promiseData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value">
                 {promiseData.map((entry, i) => (
-                  <Cell key={i} fill={entry.fill} />
+                  <Cell key={`promise-cell-${i}-${entry.name}`} fill={entry.fill} />
                 ))}
               </Pie>
               <Tooltip />

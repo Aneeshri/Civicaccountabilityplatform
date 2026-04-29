@@ -438,7 +438,7 @@ export function TaxInArea() {
                         onMouseEnter={(_, idx) => setActivePieIndex(idx)}
                       >
                         {taxPieData.filter(d => d.value > 0).map((d, i) => (
-                          <Cell key={i} fill={d.color} />
+                          <Cell key={`tax-pie-cell-${i}`} fill={d.color} />
                         ))}
                       </Pie>
                     </PieChart>
@@ -751,7 +751,7 @@ export function TaxInArea() {
                             activeIndex={activePieIndex} activeShape={renderActiveShape}
                             onMouseEnter={(_: any, idx: number) => setActivePieIndex(idx)}>
                             {usagePieData.filter((d: any) => d.value > 0).map((d: any, i: number) => (
-                              <Cell key={i} fill={d.color} />
+                              <Cell key={`usage-pie-cell-${i}`} fill={d.color} />
                             ))}
                           </Pie>
                         </PieChart>
@@ -820,7 +820,7 @@ export function TaxInArea() {
                         <Legend wrapperStyle={{ fontSize: 11 }} />
                         <Bar dataKey="allocated" fill="#E0E7FF" radius={[4, 4, 0, 0]} name="Allocated" />
                         <Bar dataKey="spent" radius={[4, 4, 0, 0]} name="Spent">
-                          {data.categories.map((_: any, i: number) => <Cell key={i} fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />)}
+                          {data.categories.map((_: any, i: number) => <Cell key={`cat-bar-cell-${i}`} fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} />)}
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>

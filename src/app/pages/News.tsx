@@ -166,7 +166,7 @@ export function News() {
           <ResponsiveContainer width="100%" height={180}>
             <PieChart>
               <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`} labelLine={false}>
-                {pieData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                {pieData.map((entry, i) => <Cell key={`news-pie-cell-${i}-${entry.fill}`} fill={entry.fill} />)}
               </Pie>
               <Tooltip />
             </PieChart>
